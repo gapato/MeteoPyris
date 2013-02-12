@@ -26,6 +26,6 @@ Obviously, the initialisation is to be done only once.
 The sample template 'fr_template.html' is into the example
 folder and requires the pystache template engine.
 
-Hopefuly, updates, hopefuly doc and installer are coming soon.
+Hopefuly, updates, doc and installer are coming soon.
 
 This software is distributed under the Modified BSD License
