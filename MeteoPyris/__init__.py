@@ -1,0 +1,1 @@
+from MeteoPyris.manager import *
