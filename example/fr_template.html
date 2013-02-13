@@ -20,14 +20,21 @@
                     chart = new Highcharts.Chart({
                         chart: {
                             renderTo: 'container',
-                            type: 'line',
+                            type: 'spline',
+                            animation : false,
                             zoomType: 'x'
                         },
                         title: {
-                            text: 'Température et pression à Paris'
+                            text: 'Température et pression à Paris pour les dernières 36 heures'
                         },
                         subtitle: {
                             text: 'Glisser pour zoomer'
+                        },
+                        plotOptions: {
+                            series: {
+                                pointStart: {{START_DATE}},
+                                pointInterval: {{TIME_STEP}}
+                            }
                         },
                         xAxis: {
                             type: 'datetime',
@@ -36,7 +43,7 @@
                                 second: '%H:%M:%S',
                                 minute: '%H:%M',
                                 hour: '%H:%M',
-                                day: '%e %B',
+                                day: '%A %e %B',
                                 week: '%e. %b',
                                 month: '%b %y',
                                 year: '%Y'
@@ -44,11 +51,26 @@
                         },
                         yAxis: [{
                             title: {
-                                text: 'Température'
-                            }
+                                text: 'Température',
+                                style: {
+                                    color: '#DD0000'
+                                }
+                           },
+                           showFirstLabel : false
                         }, {
                             title: {
-                                text: 'Pression'
+                                text: 'Pression',
+                                style: {
+                                    color: '#00DD00'
+                                }
+                            },
+                            opposite : true
+                        }, {
+                            title: {
+                                text: 'Humidité',
+                                style: {
+                                    color: '#0000DD'
+                                }
                             },
                             opposite : true
                         }],
@@ -56,7 +78,9 @@
                             formatter: function() {
                                 var unit = {
                                     'Température': '°C',
-                                    'Pression': 'mbar'
+                                    'Pression': 'mbar',
+                                    'Atmosphère normale': 'mbar',
+                                    'Humidité': '%'
                                 }[this.series.name];
                                 return '<b>' + this.y + unit +'</b><br/>'+
                                 Highcharts.dateFormat('%d %B à %Hh%M', this.x);
@@ -64,23 +88,59 @@
                         },
 
                         series: [{
+                            animation : false,
                             yAxis: 0,
                             name: 'Température',
+                            color : '#DD0000',
                             marker: {
                                 enabled: false
                             },
                             data: [
-                                {{TEMP_DATA}}
+                                {{TEMP_OUT_DATA}}
                             ]
                         },{
                             yAxis: 1,
+                            animation : false,
                             name: 'Pression',
+                            color : '#00DD00',
                             marker: {
                                 enabled: false
                             },
-                            dashStyle: 'shortdot',
+                            dashStyle: 'solid',
+                            shadow : false,
+                            lineWidth : 1,
                             data: [
-                                {{PRESS_DATA}}
+                                {{PRESSURE_DATA}}
+                            ]
+                        },{
+                            yAxis: 1,
+                            animation : false,
+                            name: 'Atmosphère normale',
+                            color : '#00DD00',
+                            marker: {
+                                enabled: false
+                            },
+                            dashStyle: 'longdash',
+                            shadow : false,
+                            lineWidth : 1,
+                            data: [
+                                [ {{START_DATE}}, 1013.25 ],
+                                [ {{END_DATE}}, 1013.25 ]
+                            ]
+                        },{
+                            yAxis: 2,
+                            animation : false,
+                            name: 'Humidité',
+                            color : '#0000FF',
+                            marker: {
+                                enabled: false
+                            },
+                            visible : false,
+                            dashStyle: 'dot',
+                            shadow : false,
+                            lineWidth : 1,
+                            data: [
+                                {{OUT_HUM_DATA}}
                             ]
                         }]
                     });
