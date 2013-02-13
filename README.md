@@ -12,7 +12,8 @@ m = MeteoPyris.Manager()
 m.reinit_table()
 m.update_database()
 
-html = m.render_template('fr_template.html').encode('utf-8')
+meas = m.fetch_measures(hours_back=36, fields=['temp_out', 'out_hum', 'pressure'])
+html = meas.render_template('_template.html').encode('utf-8')
 
 with open('render.html', 'w') as h:
     h.write(html)
