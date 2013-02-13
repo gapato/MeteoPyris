@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # coding: utf-8
 
 # This software is distributed under the Modified BSD License
@@ -28,12 +27,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import division
 import csv
 import datetime
 import sqlite3
 import urllib2
 import os
 import sys
+
+import MeteoPyris.measures
 
 class Manager:
 
@@ -114,14 +116,14 @@ class Manager:
 
         cur = self.con.cursor()
 
-        data_list = data_list[:mark][::-1]
+        data_list = data_list[:mark]
 
         cur.executemany('INSERT INTO meteo VALUES (?, ?, ?, ?, ?, ?);', data_list)
         self.con.commit()
 
         return len(data_list)
 
-    def dump_table(self):
+    def _dump_table(self):
         cur = self.con.cursor()
 
         cur.execute('SELECT * FROM meteo;')
@@ -129,44 +131,39 @@ class Manager:
         for l in cur:
             print l
 
-    def render_template(self, filename):
+    def fetch_measures(self, from_date=None, to_date=None, hours_back=None, fields=['temp_out']):
+        """Fetch specified fields + date from base, between specified dates
 
-        try:
-            import pystache
-        except:
-            sys.stderr.write('MeteoPyris needs the pystache package to render templates')
-            return False
+        Keyword arguments:
+        from_date   -- a datetime.datetime object. If None, defaults to 24 hours before now. Overrides hours_back
+        to_date     -- a datetime.datetime object. If None, defaults to now
+        hours_back  -- integer, limit data to the last hours_back hours
+        fields      -- array of strings, elements of ... . Date will be always included
+
+        """
+        for f in fields:
+            assert self.DUMP_FIELDS_NAMES.index(f), 'unkown field {0}'.format(f)
+
+        sql_fields = ['time']
+        sql_fields.extend(fields)
+
+        if not to_date:
+            to_date = datetime.datetime.now()
+        else:
+            assert to_date.__class__ == datetime.datetime, 'to_date must be datetime.datetime'
+
+        if not from_date:
+            if hours_back:
+                assert hours_back.__class__ == int, 'hours must be an int'
+                delta = datetime.timedelta(hours=abs(hours_back))
+            else:
+                delta = datetime.timedelta(day=1)
+            from_date = datetime.datetime.now()
+            from_date -= delta
+        else:
+            assert from_date.__class__ == datetime.datetime, 'from_date must be datetime.datetime'
 
         cur = self.con.cursor()
-        cur.execute('SELECT time, temp_out, pressure FROM meteo ORDER BY datetime(time) DESC LIMIT 5000;')
+        cur.execute('SELECT %s FROM meteo WHERE datetime(time) >= ? AND datetime(time) <= ? ORDER BY datetime(time) ASC;' % (', '.join(sql_fields)), [from_date, to_date])
 
-        temp_datastring = ''
-        press_datastring = ''
-        i = -1
-        for l in cur:
-
-            if i == -1 and l[0].minute % 30 != 0:
-                continue
-
-            i+=1
-
-            d = l[0]
-            t = l[1]
-            p = l[2]
-            if i % 4 == 0:
-                temp_datastring = "[Date.UTC(%d,  %d, %d, %d, %d, %d), %f   ],\n" % (d.year, d.month-1, d.day, d.hour, d.minute, 0, t) + temp_datastring
-            if i % 6 == 0:
-                press_datastring = "[Date.UTC(%d,  %d, %d, %d, %d, %d), %f   ],\n" % (d.year, d.month-1, d.day, d.hour, d.minute, 0, p) + press_datastring
-
-        if len(temp_datastring) > 0:
-            temp_datastring = temp_datastring[:-2]
-            press_datastring = press_datastring[:-2]
-        self.con.commit()
-
-        r = ''
-        renderer = pystache.Renderer(file_encoding='utf-8', string_encoding='utf-8')
-        with open(filename, 'r') as template:
-            for line in template:
-                r += renderer.render(line, {'TEMP_DATA' : temp_datastring, 'PRESS_DATA' : press_datastring })
-
-        return r
+        return MeteoPyris.Measures(cur, sql_fields)
