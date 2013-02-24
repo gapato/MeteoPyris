@@ -39,7 +39,10 @@ import MeteoPyris.measures
 
 class Manager:
 
-    DATABASE_NAME     = os.environ['HOME'] + '/.meteo.db'
+    try:
+        DATABASE_NAME     = os.environ['HOME'] + '/.meteo.db'
+    except:
+        DATABASE_NAME     = None
     DUMP_URL          = 'http://static.meteo-paris.com/station/downld02.txt'
     DUMP_TIME_FMT     = '%d/%m/%y %H:%M'
     DUMP_FIELDS_NAMES = [
